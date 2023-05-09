@@ -13,7 +13,10 @@ const ProductsSchema = new Schema(
       type: Number
     },
     quantity: {
-      type: Array
+      type: Number
+    },
+    barcode: {
+      type: String
     },
     images: {
       type: Array,

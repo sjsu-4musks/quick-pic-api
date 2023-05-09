@@ -106,7 +106,8 @@ router.post("/", async (req, res) => {
       quantity,
       barcode,
       images,
-      tags
+      tags,
+      user: token.user._id
     }).save();
 
     return res.status(200).json({
@@ -260,9 +261,9 @@ router.post("/detect", async (req, res) => {
         .json({ success: false, message: token.message });
     }
 
-    // const { imageBase64 } = req.body;
-
-    const image = fs.readFileSync(`public/the_hunger_games.jpeg`);
+    const { imageBase64 } = req.body;
+    const image = Buffer.from(imageBase64, "base64");
+    // const image = fs.readFileSync(`public/bottle_Image.jpeg`);
 
     client.detectText(
       {
@@ -279,22 +280,41 @@ router.post("/detect", async (req, res) => {
         if (err) {
           throw err;
         } else {
-          console.log("response : ", response);
+          // console.log("response : ", response);
 
-          const detectedTextLines = [];
+          // const detectedTextLines = [];
 
-          for (let i = 0; i < 3; i++) {
-            const elem = response.TextDetections[i];
+          // for (let i = 0; i < 3; i++) {
+          //   const elem = response.TextDetections[i];
 
-            detectedTextLines.push(elem.DetectedText);
+          //   detectedTextLines.push(elem.DetectedText);
+          // }
+
+          // const query = detectedTextLines.join(" ");
+
+          // console.log("query : ", query);
+
+          const barcodeNumberRegex = /\d+/; // Regular expression to identify numbers
+          let barcodeNumber;
+
+          for (const elem of response.TextDetections) {
+            const match = elem.DetectedText.match(barcodeNumberRegex);
+            if (match) {
+              barcodeNumber = match[0];
+              break;
+            }
           }
 
-          const query = detectedTextLines.join(" ");
+          if (!barcodeNumber) {
+            return res.status(200).json({
+              success: false,
+              message: "No barcode number detected in the image"
+            });
+          }
 
-          console.log("query : ", query);
-
-          const products = await BooksModel.find({
-            name: new RegExp(query, "i")
+          const products = await ProductsModel.find({
+            barcode: new RegExp(barcodeNumber, "i")
+            // name: new RegExp(query, "i")
           });
 
           return res.status(200).json({ success: true, products });
@@ -327,9 +347,14 @@ router.post("/summarize", async (req, res) => {
         .json({ success: false, message: "ID is required." });
     }
 
-    const book = await BooksModel.findById(id);
+    // const book = await BooksModel.findById(id);
 
-    const prompt = `Provide a summary of the movie named ${book.name}`;
+    // const prompt = `Provide a summary of the movie named ${book.name}`;
+
+    const product = await ProductsModel.findById(id);
+    console.log("Product found: ", product);
+
+    const prompt = `Provide a summary of the Product named ${product.name}`;
 
     const chatCompletionResponse = await createChatCompletion(prompt);
 

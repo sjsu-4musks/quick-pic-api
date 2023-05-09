@@ -108,7 +108,11 @@ router.post("/signin", async (req, res) => {
 
     const token = encodeJWT({ userId: user._id });
 
-    return res.status(200).json({ success: true, data: { user, token } });
+    // return res.status(200).json({ success: true, data: { user, token } });
+    res
+      .set("x-access-token", token)
+      .status(200)
+      .json({ success: true, data: { user, token } });
   } catch (error) {
     logger.error("POST /api/v1/users/signin/email -> error : ", error);
     return res
